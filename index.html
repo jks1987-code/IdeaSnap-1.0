@@ -8,85 +8,192 @@
 </head>
 <body>
   <div class="app">
+
+    <!-- Header -->
     <header>
       <h1>IdeaSnap</h1>
-      <p class="tagline">Capture ideas in one tap</p>
+      <nav class="tabs" role="tablist" aria-label="App sections">
+        <button class="tab active" data-tab="capture" role="tab" aria-selected="true">Capture</button>
+        <button class="tab"         data-tab="history" role="tab" aria-selected="false">History</button>
+      </nav>
     </header>
 
-    <main>
-      <!-- Record Button -->
-      <section class="recorder">
+    <!-- ===== CAPTURE PAGE ===== -->
+    <section id="capturePage" class="page" role="tabpanel">
+
+      <!-- Recorder Card -->
+      <div class="recorder card">
+
         <button id="recordBtn" class="record-btn" aria-label="Start recording">
           <span class="mic-icon">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/>
               <path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="8"  y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
           </span>
           <span class="record-label">Tap to Record</span>
         </button>
 
+        <!-- Status / Timer -->
         <div id="statusBar" class="status-bar hidden">
           <div class="pulse-ring"></div>
           <span id="statusText">Listening…</span>
           <span id="timer" class="timer">0:00</span>
         </div>
 
+        <!-- Live Transcript -->
         <div id="transcript" class="transcript hidden">
           <p id="transcriptText"></p>
         </div>
 
-        <div id="actionBar" class="action-bar hidden">
-          <button id="saveBtn" class="btn btn-primary">Save Idea</button>
-          <button id="discardBtn" class="btn btn-ghost">Discard</button>
-        </div>
-      </section>
-
-      <!-- Ideas List -->
-      <section class="ideas-section">
-        <div class="ideas-header">
-          <h2>Saved Ideas <span id="ideaCount" class="count-badge">0</span></h2>
-          <div class="ideas-controls">
-            <button id="exportBtn" class="btn btn-sm btn-outline" title="Export all ideas">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
-                <path d="M12 15V3m0 12-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              Export
-            </button>
-            <button id="clearAllBtn" class="btn btn-sm btn-danger-ghost" title="Clear all ideas">Clear All</button>
+        <!-- Classification Chips (shown in save flow) -->
+        <div id="classifyBar" class="classify-bar hidden">
+          <span class="classify-label">Category</span>
+          <div class="chip-row" id="captureChips">
+            <button class="chip active" data-cat="">None</button>
+            <button class="chip cat-writing"     data-cat="Writing">Writing</button>
+            <button class="chip cat-artistic"    data-cat="Artistic">Artistic</button>
+            <button class="chip cat-improvement" data-cat="Improvement">Improvement</button>
+            <button class="chip cat-repair"      data-cat="Repair">Repair</button>
+            <button class="chip cat-code"        data-cat="Code">Code</button>
           </div>
         </div>
 
-        <div id="emptyState" class="empty-state">
-          <div class="empty-icon">💡</div>
-          <p>No ideas yet. Tap the button to capture your first one!</p>
+        <!-- Save / Discard -->
+        <div id="actionBar" class="action-bar hidden">
+          <button id="saveBtn" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+              <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Save Idea
+          </button>
+          <button id="discardBtn" class="btn btn-ghost">Discard</button>
         </div>
 
-        <ul id="ideasList" class="ideas-list"></ul>
-      </section>
-    </main>
+      </div><!-- /recorder -->
+
+      <!-- Recent Ideas -->
+      <div class="section-header">
+        <h2>Recent <span id="ideaCount" class="count-badge">0</span></h2>
+        <button class="btn btn-sm btn-ghost tab-link" data-tab="history">View all →</button>
+      </div>
+
+      <div id="recentEmpty" class="empty-state">
+        <div class="empty-icon">💡</div>
+        <p>No ideas yet. Tap the button to capture your first one!</p>
+      </div>
+
+      <ul id="recentList" class="ideas-list"></ul>
+
+    </section><!-- /capturePage -->
+
+
+    <!-- ===== HISTORY PAGE ===== -->
+    <section id="historyPage" class="page hidden" role="tabpanel">
+
+      <!-- Filter Card -->
+      <div class="filter-card card">
+
+        <!-- Keyword search -->
+        <div class="filter-row">
+          <div class="search-wrap">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" width="16" height="16">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+              <path d="m21 21-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <input type="search" id="searchFilter" class="search-input" placeholder="Search ideas…" aria-label="Search ideas" />
+          </div>
+        </div>
+
+        <!-- Category filter -->
+        <div class="filter-row">
+          <span class="filter-label">Category</span>
+          <div class="chip-row" id="filterChips">
+            <button class="chip active" data-cat="">All</button>
+            <button class="chip cat-writing"     data-cat="Writing">Writing</button>
+            <button class="chip cat-artistic"    data-cat="Artistic">Artistic</button>
+            <button class="chip cat-improvement" data-cat="Improvement">Improvement</button>
+            <button class="chip cat-repair"      data-cat="Repair">Repair</button>
+            <button class="chip cat-code"        data-cat="Code">Code</button>
+          </div>
+        </div>
+
+        <!-- Date range -->
+        <div class="filter-row filter-dates">
+          <span class="filter-label">Date</span>
+          <div class="date-group">
+            <input type="date" id="dateFrom" class="date-input" aria-label="From date" />
+            <span class="date-sep">→</span>
+            <input type="date" id="dateTo"   class="date-input" aria-label="To date" />
+          </div>
+          <button id="clearFilters" class="btn btn-sm btn-ghost">Clear</button>
+        </div>
+
+      </div><!-- /filter-card -->
+
+      <!-- History toolbar -->
+      <div class="history-toolbar">
+        <span id="historyCount" class="text-muted"></span>
+        <div class="history-actions">
+          <label class="btn btn-sm btn-outline import-label" title="Import CSV">
+            <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
+              <path d="M12 3v12m0-12 4 4m-4-4L8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Import CSV
+            <input type="file" id="importFile" accept=".csv,.txt" class="sr-only" />
+          </label>
+          <button id="exportBtn" class="btn btn-sm btn-outline" title="Export CSV">
+            <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
+              <path d="M12 15V3m0 12-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Export CSV
+          </button>
+          <button id="clearAllBtn" class="btn btn-sm btn-danger-ghost">Clear All</button>
+        </div>
+      </div>
+
+      <div id="historyEmpty" class="empty-state hidden">
+        <div class="empty-icon">🔍</div>
+        <p id="historyEmptyMsg">No ideas yet.</p>
+      </div>
+
+      <ul id="historyList" class="ideas-list"></ul>
+
+    </section><!-- /historyPage -->
+
 
     <!-- Toast notification -->
-    <div id="toast" class="toast hidden"></div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
-    <!-- No speech support modal -->
-    <div id="noSpeechModal" class="modal hidden">
+    <!-- No-Speech Fallback Modal -->
+    <div id="noSpeechModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-box">
-        <h3>Speech Not Supported</h3>
-        <p>Your browser doesn't support the Speech Recognition API. Please use Chrome, Edge, or Safari.</p>
-        <p>You can still type ideas manually below.</p>
+        <h3 id="modalTitle">Speech Not Supported</h3>
+        <p>Your browser doesn't support the Speech Recognition API. Try Chrome, Edge, or Safari — or type your idea below.</p>
         <textarea id="manualInput" class="manual-input" placeholder="Type your idea here…" rows="4"></textarea>
+        <div class="classify-bar" id="modalClassifyBar">
+          <span class="classify-label">Category</span>
+          <div class="chip-row" id="modalChips">
+            <button class="chip active" data-cat="">None</button>
+            <button class="chip cat-writing"     data-cat="Writing">Writing</button>
+            <button class="chip cat-artistic"    data-cat="Artistic">Artistic</button>
+            <button class="chip cat-improvement" data-cat="Improvement">Improvement</button>
+            <button class="chip cat-repair"      data-cat="Repair">Repair</button>
+            <button class="chip cat-code"        data-cat="Code">Code</button>
+          </div>
+        </div>
         <div class="modal-actions">
           <button id="saveManualBtn" class="btn btn-primary">Save Idea</button>
           <button id="closeModalBtn" class="btn btn-ghost">Cancel</button>
         </div>
       </div>
     </div>
-  </div>
 
+  </div><!-- /app -->
   <script src="app.js"></script>
 </body>
 </html>
