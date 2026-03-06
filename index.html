@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IdeaSnap</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>IdeaSnap</h1>
+      <p class="tagline">Capture ideas in one tap</p>
+    </header>
+
+    <main>
+      <!-- Record Button -->
+      <section class="recorder">
+        <button id="recordBtn" class="record-btn" aria-label="Start recording">
+          <span class="mic-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/>
+              <path d="M5 10a7 7 0 0 0 14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="record-label">Tap to Record</span>
+        </button>
+
+        <div id="statusBar" class="status-bar hidden">
+          <div class="pulse-ring"></div>
+          <span id="statusText">Listening…</span>
+          <span id="timer" class="timer">0:00</span>
+        </div>
+
+        <div id="transcript" class="transcript hidden">
+          <p id="transcriptText"></p>
+        </div>
+
+        <div id="actionBar" class="action-bar hidden">
+          <button id="saveBtn" class="btn btn-primary">Save Idea</button>
+          <button id="discardBtn" class="btn btn-ghost">Discard</button>
+        </div>
+      </section>
+
+      <!-- Ideas List -->
+      <section class="ideas-section">
+        <div class="ideas-header">
+          <h2>Saved Ideas <span id="ideaCount" class="count-badge">0</span></h2>
+          <div class="ideas-controls">
+            <button id="exportBtn" class="btn btn-sm btn-outline" title="Export all ideas">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="16" height="16">
+                <path d="M12 15V3m0 12-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Export
+            </button>
+            <button id="clearAllBtn" class="btn btn-sm btn-danger-ghost" title="Clear all ideas">Clear All</button>
+          </div>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon">💡</div>
+          <p>No ideas yet. Tap the button to capture your first one!</p>
+        </div>
+
+        <ul id="ideasList" class="ideas-list"></ul>
+      </section>
+    </main>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- No speech support modal -->
+    <div id="noSpeechModal" class="modal hidden">
+      <div class="modal-box">
+        <h3>Speech Not Supported</h3>
+        <p>Your browser doesn't support the Speech Recognition API. Please use Chrome, Edge, or Safari.</p>
+        <p>You can still type ideas manually below.</p>
+        <textarea id="manualInput" class="manual-input" placeholder="Type your idea here…" rows="4"></textarea>
+        <div class="modal-actions">
+          <button id="saveManualBtn" class="btn btn-primary">Save Idea</button>
+          <button id="closeModalBtn" class="btn btn-ghost">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

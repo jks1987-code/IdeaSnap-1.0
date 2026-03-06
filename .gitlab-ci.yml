@@ -1,0 +1,14 @@
+pages:
+  stage: deploy
+  script:
+    - echo "Deploying IdeaSnap to GitLab Pages"
+  artifacts:
+    paths:
+      - public
+  only:
+    - main
+
+# Copy files into the required 'public' folder for GitLab Pages
+before_script:
+  - mkdir -p public
+  - cp index.html styles.css app.js public/

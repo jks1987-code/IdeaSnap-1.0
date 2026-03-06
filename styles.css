@@ -1,0 +1,463 @@
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --accent:       #6c63ff;
+  --accent-dark:  #574fd6;
+  --accent-light: #ede9ff;
+  --danger:       #e53e3e;
+  --danger-light: #fff5f5;
+  --text:         #1a1a2e;
+  --text-muted:   #6b7280;
+  --bg:           #f7f7fc;
+  --card:         #ffffff;
+  --border:       #e5e7eb;
+  --shadow:       0 4px 24px rgba(108, 99, 255, 0.10);
+  --radius:       1rem;
+  --radius-sm:    0.5rem;
+  --transition:   0.2s ease;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.app {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ===== Header ===== */
+header {
+  text-align: center;
+  padding-top: 2rem;
+}
+
+header h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.tagline {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-top: 0.25rem;
+}
+
+/* ===== Recorder Section ===== */
+.recorder {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 2.5rem 2rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* Record Button */
+.record-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 160px;
+  height: 160px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+  box-shadow: 0 8px 32px rgba(108, 99, 255, 0.35);
+  position: relative;
+}
+
+.record-btn:hover {
+  background: var(--accent-dark);
+  transform: scale(1.04);
+  box-shadow: 0 12px 40px rgba(108, 99, 255, 0.45);
+}
+
+.record-btn:active {
+  transform: scale(0.97);
+}
+
+.record-btn.recording {
+  background: var(--danger);
+  box-shadow: 0 8px 32px rgba(229, 62, 62, 0.35);
+  animation: pulse-btn 1.5s ease-in-out infinite;
+}
+
+.record-btn.recording:hover {
+  background: #c53030;
+  box-shadow: 0 12px 40px rgba(229, 62, 62, 0.45);
+}
+
+@keyframes pulse-btn {
+  0%, 100% { box-shadow: 0 8px 32px rgba(229, 62, 62, 0.35); }
+  50%       { box-shadow: 0 8px 48px rgba(229, 62, 62, 0.60); }
+}
+
+.mic-icon svg {
+  width: 52px;
+  height: 52px;
+}
+
+.record-label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* Status Bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.pulse-ring {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+.timer {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+/* Transcript */
+.transcript {
+  width: 100%;
+  background: var(--accent-light);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  min-height: 60px;
+  border-left: 3px solid var(--accent);
+}
+
+.transcript p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.transcript p:empty::before {
+  content: 'Start speaking…';
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Action Bar */
+.action-bar {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  padding: 0.6rem 1.4rem;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.btn-ghost:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.btn-outline:hover {
+  background: var(--accent-light);
+}
+
+.btn-danger-ghost {
+  background: transparent;
+  color: var(--danger);
+  border-color: transparent;
+}
+.btn-danger-ghost:hover {
+  background: var(--danger-light);
+  border-color: var(--danger-light);
+}
+
+.btn-sm {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+}
+
+.btn-icon {
+  padding: 0.35rem;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  border-color: transparent;
+  line-height: 1;
+}
+.btn-icon:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.btn-icon.danger:hover {
+  background: var(--danger-light);
+  color: var(--danger);
+}
+
+/* ===== Ideas Section ===== */
+.ideas-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ideas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ideas-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.count-badge {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+}
+
+.ideas-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Ideas List */
+.ideas-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.idea-item {
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  transition: box-shadow var(--transition);
+  animation: slide-in 0.25s ease;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.idea-item:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+}
+
+.idea-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.idea-text {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.idea-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+.idea-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  background: #1a1a2e;
+  color: #fff;
+  padding: 0.65rem 1.4rem;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  z-index: 999;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(8px);
+}
+
+/* ===== Modal ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal.hidden { display: none; }
+
+.modal-box {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 2rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+
+.modal-box h3 {
+  font-size: 1.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-box p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.manual-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  resize: vertical;
+  font-family: inherit;
+  color: var(--text);
+  margin-bottom: 1rem;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.manual-input:focus {
+  border-color: var(--accent);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+/* ===== Utility ===== */
+.hidden { display: none !important; }
+
+/* ===== Responsive ===== */
+@media (max-width: 400px) {
+  .record-btn {
+    width: 140px;
+    height: 140px;
+  }
+
+  .mic-icon svg {
+    width: 44px;
+    height: 44px;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+  }
+}
