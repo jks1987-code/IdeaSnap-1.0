@@ -56,6 +56,7 @@ let isRecording      = false;
 let timerInterval    = null;
 let elapsedSecs      = 0;
 let currentText      = '';
+let currentInterim   = '';
 let toastTimeout     = null;
 let activePage       = 'capture';
 
@@ -104,7 +105,8 @@ function initSpeechRecognition() {
       if (event.results[i].isFinal) final += t + ' ';
       else interim += t;
     }
-    if (final) currentText += final;
+    if (final) { currentText += final; currentInterim = ''; }
+    else currentInterim = interim;
     transcriptText.textContent = currentText + interim;
   };
 
@@ -150,7 +152,8 @@ recordBtn.addEventListener('click', () => {
 });
 
 function startRecording() {
-  currentText = '';
+  currentText    = '';
+  currentInterim = '';
   transcriptText.textContent = '';
 
   if (!recognition && !initSpeechRecognition()) {
@@ -181,7 +184,7 @@ function stopAndSave() {
   statusBar.classList.add('hidden');
   transcriptEl.classList.add('hidden');
 
-  const text = currentText.trim();
+  const text = (currentText + currentInterim).trim();
   if (!text) {
     showToast('No speech detected — try again!');
     return;
