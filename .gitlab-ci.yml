@@ -11,4 +11,4 @@ pages:
 # Copy files into the required 'public' folder for GitLab Pages
 before_script:
   - mkdir -p public
-  - cp index.html styles.css app.js public/
+  - cp index.html styles.css app.js logo.png public/

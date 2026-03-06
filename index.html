@@ -11,12 +11,15 @@
 
     <!-- Header -->
     <header>
-      <h1>IdeaSnap</h1>
+      <div class="logo-wrap">
+        <img src="logo.png" alt="IdeaSnap" class="logo" />
+      </div>
       <nav class="tabs" role="tablist" aria-label="App sections">
         <button class="tab active" data-tab="capture" role="tab" aria-selected="true">Capture</button>
         <button class="tab"         data-tab="history" role="tab" aria-selected="false">History</button>
       </nav>
     </header>
+
 
     <!-- ===== CAPTURE PAGE ===== -->
     <section id="capturePage" class="page" role="tabpanel">
@@ -36,40 +39,16 @@
           <span class="record-label">Tap to Record</span>
         </button>
 
-        <!-- Status / Timer -->
+        <!-- Status / Timer (shown while recording) -->
         <div id="statusBar" class="status-bar hidden">
           <div class="pulse-ring"></div>
           <span id="statusText">Listening…</span>
           <span id="timer" class="timer">0:00</span>
         </div>
 
-        <!-- Live Transcript -->
+        <!-- Live transcript preview (visible during recording only) -->
         <div id="transcript" class="transcript hidden">
           <p id="transcriptText"></p>
-        </div>
-
-        <!-- Classification Chips (shown in save flow) -->
-        <div id="classifyBar" class="classify-bar hidden">
-          <span class="classify-label">Category</span>
-          <div class="chip-row" id="captureChips">
-            <button class="chip active" data-cat="">None</button>
-            <button class="chip cat-writing"     data-cat="Writing">Writing</button>
-            <button class="chip cat-artistic"    data-cat="Artistic">Artistic</button>
-            <button class="chip cat-improvement" data-cat="Improvement">Improvement</button>
-            <button class="chip cat-repair"      data-cat="Repair">Repair</button>
-            <button class="chip cat-code"        data-cat="Code">Code</button>
-          </div>
-        </div>
-
-        <!-- Save / Discard -->
-        <div id="actionBar" class="action-bar hidden">
-          <button id="saveBtn" class="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
-              <path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Save Idea
-          </button>
-          <button id="discardBtn" class="btn btn-ghost">Discard</button>
         </div>
 
       </div><!-- /recorder -->
@@ -82,7 +61,7 @@
 
       <div id="recentEmpty" class="empty-state">
         <div class="empty-icon">💡</div>
-        <p>No ideas yet. Tap the button to capture your first one!</p>
+        <p>No ideas yet.<br>Tap the button above to capture your first one!</p>
       </div>
 
       <ul id="recentList" class="ideas-list"></ul>
@@ -107,16 +86,16 @@
           </div>
         </div>
 
-        <!-- Category filter -->
+        <!-- Category filter (alphabetized) -->
         <div class="filter-row">
           <span class="filter-label">Category</span>
           <div class="chip-row" id="filterChips">
-            <button class="chip active" data-cat="">All</button>
-            <button class="chip cat-writing"     data-cat="Writing">Writing</button>
-            <button class="chip cat-artistic"    data-cat="Artistic">Artistic</button>
-            <button class="chip cat-improvement" data-cat="Improvement">Improvement</button>
-            <button class="chip cat-repair"      data-cat="Repair">Repair</button>
-            <button class="chip cat-code"        data-cat="Code">Code</button>
+            <button class="chip active"               data-cat="">All</button>
+            <button class="chip cat-artistic"         data-cat="Artistic">Artistic</button>
+            <button class="chip cat-improvement"      data-cat="Improvement">Improvement</button>
+            <button class="chip cat-repair"           data-cat="Repair">Repair</button>
+            <button class="chip cat-shopping"         data-cat="Shopping">Shopping</button>
+            <button class="chip cat-writing"          data-cat="Writing">Writing</button>
           </div>
         </div>
 
@@ -142,15 +121,15 @@
               <path d="M12 3v12m0-12 4 4m-4-4L8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
-            Import CSV
+            Import
             <input type="file" id="importFile" accept=".csv,.txt" class="sr-only" />
           </label>
-          <button id="exportBtn" class="btn btn-sm btn-outline" title="Export CSV">
+          <button id="exportBtn" class="btn btn-sm btn-outline">
             <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
               <path d="M12 15V3m0 12-4-4m4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M3 17v2a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
-            Export CSV
+            Export
           </button>
           <button id="clearAllBtn" class="btn btn-sm btn-danger-ghost">Clear All</button>
         </div>
@@ -166,32 +145,97 @@
     </section><!-- /historyPage -->
 
 
-    <!-- Toast notification -->
-    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <!-- ===== DETAIL MODAL ===== -->
+    <div id="detailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+      <div class="modal-box detail-box">
 
-    <!-- No-Speech Fallback Modal -->
-    <div id="noSpeechModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-box">
-        <h3 id="modalTitle">Speech Not Supported</h3>
-        <p>Your browser doesn't support the Speech Recognition API. Try Chrome, Edge, or Safari — or type your idea below.</p>
-        <textarea id="manualInput" class="manual-input" placeholder="Type your idea here…" rows="4"></textarea>
-        <div class="classify-bar" id="modalClassifyBar">
+        <div class="modal-header">
+          <h3 id="detailModalTitle">Idea Details</h3>
+          <button id="closeDetailBtn" class="btn btn-icon close-btn" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Editable text -->
+        <textarea id="detailText" class="edit-textarea" rows="4" placeholder="Idea text…"></textarea>
+
+        <!-- Classification (alphabetized) -->
+        <div class="classify-bar">
           <span class="classify-label">Category</span>
-          <div class="chip-row" id="modalChips">
-            <button class="chip active" data-cat="">None</button>
-            <button class="chip cat-writing"     data-cat="Writing">Writing</button>
+          <div class="chip-row" id="detailChips">
+            <button class="chip active"          data-cat="">None</button>
             <button class="chip cat-artistic"    data-cat="Artistic">Artistic</button>
             <button class="chip cat-improvement" data-cat="Improvement">Improvement</button>
             <button class="chip cat-repair"      data-cat="Repair">Repair</button>
-            <button class="chip cat-code"        data-cat="Code">Code</button>
+            <button class="chip cat-shopping"    data-cat="Shopping">Shopping</button>
+            <button class="chip cat-writing"     data-cat="Writing">Writing</button>
           </div>
         </div>
-        <div class="modal-actions">
+
+        <!-- Media -->
+        <div class="media-section">
+          <span class="classify-label">Media</span>
+          <div class="media-buttons">
+            <label class="btn btn-sm btn-outline media-btn">
+              <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
+                <circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M3 9h2l2-3h10l2 3h2a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              </svg>
+              Photo
+              <input type="file" accept="image/*" capture="environment" id="inputCameraPhoto" class="sr-only" />
+            </label>
+            <label class="btn btn-sm btn-outline media-btn">
+              <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
+                <path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14v-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <rect x="2" y="7" width="13" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              Video
+              <input type="file" accept="video/*" capture="environment" id="inputCameraVideo" class="sr-only" />
+            </label>
+            <label class="btn btn-sm btn-outline media-btn">
+              <svg viewBox="0 0 24 24" fill="none" width="15" height="15">
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                <path d="m21 15-5-5L5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Library
+              <input type="file" accept="image/*,video/*" id="inputLibrary" class="sr-only" />
+            </label>
+          </div>
+          <div id="mediaPreview" class="media-preview"></div>
+        </div>
+
+        <!-- Date & Location -->
+        <div id="detailMeta" class="detail-meta"></div>
+
+        <!-- Actions -->
+        <div class="modal-footer">
+          <button id="saveDetailBtn"   class="btn btn-primary">Save Changes</button>
+          <button id="deleteDetailBtn" class="btn btn-danger-ghost">Delete Idea</button>
+        </div>
+
+      </div>
+    </div><!-- /detailModal -->
+
+
+    <!-- ===== NO-SPEECH FALLBACK MODAL ===== -->
+    <div id="noSpeechModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="noSpeechTitle">
+      <div class="modal-box">
+        <h3 id="noSpeechTitle">Speech Not Supported</h3>
+        <p>Your browser doesn't support speech recognition. Please use Chrome, Edge, or Safari — or type your idea below.</p>
+        <textarea id="manualInput" class="edit-textarea" placeholder="Type your idea here…" rows="4"></textarea>
+        <div class="modal-footer" style="margin-top:0">
           <button id="saveManualBtn" class="btn btn-primary">Save Idea</button>
           <button id="closeModalBtn" class="btn btn-ghost">Cancel</button>
         </div>
       </div>
     </div>
+
+
+    <!-- Toast -->
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
   </div><!-- /app -->
   <script src="app.js"></script>

@@ -1,58 +1,73 @@
 'use strict';
 
 // ===== Constants =====
-const STORAGE_KEY  = 'ideasnap_ideas';
-const CATEGORIES   = ['Writing', 'Artistic', 'Improvement', 'Repair', 'Code'];
-const RECENT_MAX   = 5;
-const GEO_TIMEOUT  = 6000; // ms to wait for GPS before saving without location
+const STORAGE_KEY = 'ideasnap_ideas';
+const CATEGORIES  = ['Artistic', 'Improvement', 'Repair', 'Shopping', 'Writing']; // alphabetized
+const RECENT_MAX  = 5;
+const GEO_TIMEOUT = 6000;
 
 // ===== DOM References =====
-const recordBtn       = document.getElementById('recordBtn');
-const recordLabel     = recordBtn.querySelector('.record-label');
-const statusBar       = document.getElementById('statusBar');
-const statusText      = document.getElementById('statusText');
-const timerEl         = document.getElementById('timer');
-const transcriptEl    = document.getElementById('transcript');
-const transcriptText  = document.getElementById('transcriptText');
-const classifyBar     = document.getElementById('classifyBar');
-const captureChips    = document.getElementById('captureChips');
-const actionBar       = document.getElementById('actionBar');
-const saveBtn         = document.getElementById('saveBtn');
-const discardBtn      = document.getElementById('discardBtn');
-const recentList      = document.getElementById('recentList');
-const recentEmpty     = document.getElementById('recentEmpty');
-const ideaCount       = document.getElementById('ideaCount');
+const recordBtn      = document.getElementById('recordBtn');
+const recordLabel    = recordBtn.querySelector('.record-label');
+const statusBar      = document.getElementById('statusBar');
+const timerEl        = document.getElementById('timer');
+const transcriptEl   = document.getElementById('transcript');
+const transcriptText = document.getElementById('transcriptText');
 
-const searchFilter    = document.getElementById('searchFilter');
-const filterChips     = document.getElementById('filterChips');
-const dateFrom        = document.getElementById('dateFrom');
-const dateTo          = document.getElementById('dateTo');
-const clearFilters    = document.getElementById('clearFilters');
-const historyList     = document.getElementById('historyList');
-const historyEmpty    = document.getElementById('historyEmpty');
-const historyEmptyMsg = document.getElementById('historyEmptyMsg');
-const historyCount    = document.getElementById('historyCount');
-const exportBtn       = document.getElementById('exportBtn');
-const importFile      = document.getElementById('importFile');
-const clearAllBtn     = document.getElementById('clearAllBtn');
+const recentList     = document.getElementById('recentList');
+const recentEmpty    = document.getElementById('recentEmpty');
+const ideaCount      = document.getElementById('ideaCount');
 
-const toast           = document.getElementById('toast');
-const noSpeechModal   = document.getElementById('noSpeechModal');
-const manualInput     = document.getElementById('manualInput');
-const modalChips      = document.getElementById('modalChips');
-const saveManualBtn   = document.getElementById('saveManualBtn');
-const closeModalBtn   = document.getElementById('closeModalBtn');
+const searchFilter   = document.getElementById('searchFilter');
+const filterChips    = document.getElementById('filterChips');
+const dateFrom       = document.getElementById('dateFrom');
+const dateTo         = document.getElementById('dateTo');
+const clearFilters   = document.getElementById('clearFilters');
+const historyList    = document.getElementById('historyList');
+const historyEmpty   = document.getElementById('historyEmpty');
+const historyEmptyMsg= document.getElementById('historyEmptyMsg');
+const historyCount   = document.getElementById('historyCount');
+const exportBtn      = document.getElementById('exportBtn');
+const importFile     = document.getElementById('importFile');
+const clearAllBtn    = document.getElementById('clearAllBtn');
+
+const detailModal    = document.getElementById('detailModal');
+const closeDetailBtn = document.getElementById('closeDetailBtn');
+const detailText     = document.getElementById('detailText');
+const detailChips    = document.getElementById('detailChips');
+const detailMeta     = document.getElementById('detailMeta');
+const mediaPreview   = document.getElementById('mediaPreview');
+const inputCameraPhoto = document.getElementById('inputCameraPhoto');
+const inputCameraVideo = document.getElementById('inputCameraVideo');
+const inputLibrary   = document.getElementById('inputLibrary');
+const saveDetailBtn  = document.getElementById('saveDetailBtn');
+const deleteDetailBtn= document.getElementById('deleteDetailBtn');
+
+const noSpeechModal  = document.getElementById('noSpeechModal');
+const manualInput    = document.getElementById('manualInput');
+const saveManualBtn  = document.getElementById('saveManualBtn');
+const closeModalBtn  = document.getElementById('closeModalBtn');
+
+const toast          = document.getElementById('toast');
 
 // ===== State =====
-let recognition   = null;
-let isRecording   = false;
-let timerInterval = null;
-let elapsedSecs   = 0;
-let currentText   = '';
-let toastTimeout  = null;
-let activePage    = 'capture';
+let recognition      = null;
+let isRecording      = false;
+let timerInterval    = null;
+let elapsedSecs      = 0;
+let currentText      = '';
+let toastTimeout     = null;
+let activePage       = 'capture';
 
-// ===== Tab Navigation =====
+// Detail modal state
+let detailIdeaId     = null;
+let pendingMedia     = null; // { type, dataUrl } or null
+let removeMedia      = false;
+
+
+// ============================================================
+// TAB NAVIGATION
+// ============================================================
 document.querySelectorAll('.tab, .tab-link').forEach(btn => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
@@ -60,17 +75,19 @@ document.querySelectorAll('.tab, .tab-link').forEach(btn => {
 function switchTab(name) {
   activePage = name;
   document.querySelectorAll('.tab').forEach(t => {
-    const active = t.dataset.tab === name;
-    t.classList.toggle('active', active);
-    t.setAttribute('aria-selected', active);
+    const on = t.dataset.tab === name;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on);
   });
   document.getElementById('capturePage').classList.toggle('hidden', name !== 'capture');
   document.getElementById('historyPage').classList.toggle('hidden', name !== 'history');
-
   if (name === 'history') renderHistory();
 }
 
-// ===== Speech Recognition =====
+
+// ============================================================
+// SPEECH RECOGNITION
+// ============================================================
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 function initSpeechRecognition() {
@@ -85,7 +102,7 @@ function initSpeechRecognition() {
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const t = event.results[i][0].transcript;
       if (event.results[i].isFinal) final += t + ' ';
-      else                          interim += t;
+      else interim += t;
     }
     if (final) currentText += final;
     transcriptText.textContent = currentText + interim;
@@ -94,7 +111,7 @@ function initSpeechRecognition() {
   recognition.onerror = (e) => {
     if (e.error === 'not-allowed') {
       showToast('Microphone access denied.');
-      stopRecording();
+      stopAndSave();
     } else if (e.error === 'no-speech' && isRecording) {
       try { recognition.start(); } catch (_) {}
     }
@@ -107,7 +124,10 @@ function initSpeechRecognition() {
   return true;
 }
 
-// ===== Timer =====
+
+// ============================================================
+// TIMER
+// ============================================================
 function startTimer() {
   elapsedSecs = 0;
   renderTimer();
@@ -120,9 +140,13 @@ function renderTimer() {
   timerEl.textContent = `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-// ===== Recording =====
+
+// ============================================================
+// RECORDING — ONE TAP = RECORD, SECOND TAP = SAVE
+// ============================================================
 recordBtn.addEventListener('click', () => {
-  isRecording ? stopRecording() : startRecording();
+  if (isRecording) stopAndSave();
+  else startRecording();
 });
 
 function startRecording() {
@@ -141,15 +165,11 @@ function startRecording() {
   recordBtn.classList.add('recording');
   recordLabel.textContent = 'Tap to Stop';
   recordBtn.setAttribute('aria-label', 'Stop recording');
-
   statusBar.classList.remove('hidden');
   transcriptEl.classList.remove('hidden');
-  classifyBar.classList.add('hidden');
-  actionBar.classList.add('hidden');
-  resetChipGroup(captureChips);
 }
 
-function stopRecording() {
+function stopAndSave() {
   if (!isRecording) return;
   isRecording = false;
   if (recognition) { try { recognition.stop(); } catch (_) {} }
@@ -159,84 +179,68 @@ function stopRecording() {
   recordLabel.textContent = 'Tap to Record';
   recordBtn.setAttribute('aria-label', 'Start recording');
   statusBar.classList.add('hidden');
+  transcriptEl.classList.add('hidden');
 
   const text = currentText.trim();
-  if (text) {
-    transcriptText.textContent = text;
-    classifyBar.classList.remove('hidden');
-    actionBar.classList.remove('hidden');
-  } else {
-    transcriptEl.classList.add('hidden');
-    showToast('No speech detected. Try again!');
+  if (!text) {
+    showToast('No speech detected — try again!');
+    return;
   }
+
+  // Auto-save immediately — no confirmation needed
+  autoSave(text);
 }
 
-// ===== Save / Discard =====
-saveBtn.addEventListener('click', () => {
-  const text = currentText.trim() || transcriptText.textContent.trim();
-  if (!text) return;
-  const category = getSelectedChip(captureChips);
-  saveIdeaWithLocation(text, category);
-  resetRecorder();
-});
-
-discardBtn.addEventListener('click', () => {
-  resetRecorder();
-  showToast('Idea discarded.');
-});
-
-function resetRecorder() {
-  currentText = '';
-  transcriptText.textContent = '';
-  transcriptEl.classList.add('hidden');
-  classifyBar.classList.add('hidden');
-  actionBar.classList.add('hidden');
-  resetChipGroup(captureChips);
-}
-
-// ===== Geolocation =====
-function saveIdeaWithLocation(text, category) {
-  // Save immediately, then try to enrich with location
-  const idea = createIdea(text, category, null);
+function autoSave(text) {
+  const idea = createIdea(text, '', null);
   const ideas = loadIdeas();
   ideas.unshift(idea);
   persistIdeas(ideas);
   renderRecent();
-  showToast('Idea saved!');
+  showToast('Idea saved! Tap it to add details.');
 
+  // Enrich with location asynchronously
+  requestLocation(idea.id);
+}
+
+
+// ============================================================
+// GEOLOCATION
+// ============================================================
+function requestLocation(ideaId) {
   if (!navigator.geolocation) return;
-
-  const timeout = setTimeout(() => {}, GEO_TIMEOUT); // non-blocking sentinel
-
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      clearTimeout(timeout);
       const { latitude: lat, longitude: lng } = pos.coords;
-      const stored = loadIdeas();
-      const idx = stored.findIndex(i => i.id === idea.id);
+      const ideas = loadIdeas();
+      const idx = ideas.findIndex(i => i.id === ideaId);
       if (idx !== -1) {
-        stored[idx].location = { lat, lng };
-        persistIdeas(stored);
+        ideas[idx].location = { lat, lng };
+        persistIdeas(ideas);
         renderRecent();
         if (activePage === 'history') renderHistory();
       }
     },
-    () => { /* location denied or timed out — keep saved idea as-is */ },
+    () => { /* denied or timed out — silently skip */ },
     { timeout: GEO_TIMEOUT, maximumAge: 30000 }
   );
 }
 
+
+// ============================================================
+// DATA MODEL
+// ============================================================
 function createIdea(text, category, location) {
   return {
     id:        Date.now(),
-    text:      text,
+    text,
     category:  category || '',
     createdAt: new Date().toISOString(),
-    location:  location || null
+    location:  location || null,
+    hasMedia:  false
   };
 }
 
-// ===== Storage =====
 function loadIdeas() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch { return []; }
@@ -248,25 +252,60 @@ function persistIdeas(ideas) {
 
 function deleteIdea(id) {
   persistIdeas(loadIdeas().filter(i => i.id !== id));
+  deleteMedia(id);
   renderRecent();
-  renderHistory();
+  if (activePage === 'history') renderHistory();
   showToast('Idea deleted.');
 }
 
-function updateIdea(id, text, category) {
-  const ideas = loadIdeas();
-  const idx = ideas.findIndex(i => i.id === id);
-  if (idx !== -1) {
-    ideas[idx].text     = text;
-    ideas[idx].category = category;
-    persistIdeas(ideas);
+
+// ============================================================
+// MEDIA STORAGE (separate localStorage keys to keep main array small)
+// ============================================================
+function saveMedia(ideaId, type, dataUrl) {
+  try {
+    localStorage.setItem(`ideasnap_media_${ideaId}`, JSON.stringify({ type, dataUrl }));
+    return true;
+  } catch {
+    showToast('Storage full — media not saved. Delete old ideas to free space.');
+    return false;
   }
-  renderHistory();
-  renderRecent();
-  showToast('Idea updated.');
 }
 
-// ===== Chip Helpers =====
+function loadMedia(ideaId) {
+  try {
+    const raw = localStorage.getItem(`ideasnap_media_${ideaId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function deleteMedia(ideaId) {
+  localStorage.removeItem(`ideasnap_media_${ideaId}`);
+}
+
+async function resizeImage(file, maxW = 1200) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const ratio  = Math.min(1, maxW / img.width);
+      const w = Math.round(img.width  * ratio);
+      const h = Math.round(img.height * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.78));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+
+// ============================================================
+// CHIP HELPERS
+// ============================================================
 function initChipGroup(container) {
   container.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
@@ -280,60 +319,44 @@ function getSelectedChip(container) {
   return container.querySelector('.chip.active')?.dataset.cat ?? '';
 }
 
-function resetChipGroup(container) {
-  container.querySelectorAll('.chip').forEach(c => {
-    c.classList.toggle('active', c.dataset.cat === '');
-  });
-}
-
 function setChipGroup(container, value) {
   container.querySelectorAll('.chip').forEach(c => {
     c.classList.toggle('active', c.dataset.cat === value);
   });
 }
 
-// ===== Render: Recent (Capture Page) =====
+function resetChipGroup(container) { setChipGroup(container, ''); }
+
+
+// ============================================================
+// RENDER: RECENT IDEAS (Capture page)
+// ============================================================
 function renderRecent() {
   const all    = loadIdeas();
   const recent = all.slice(0, RECENT_MAX);
 
   ideaCount.textContent = all.length;
+  recentEmpty.classList.toggle('hidden', all.length > 0);
+  recentList.innerHTML = recent.map(ideaCardHTML).join('');
 
-  if (all.length === 0) {
-    recentEmpty.classList.remove('hidden');
-    recentList.innerHTML = '';
-    return;
-  }
-
-  recentEmpty.classList.add('hidden');
-  recentList.innerHTML = recent.map(idea => `
-    <li class="idea-item" data-id="${idea.id}">
-      <div class="idea-body">
-        ${idea.category ? `<div style="margin-bottom:0.3rem">${badgeHTML(idea.category)}</div>` : ''}
-        <p class="idea-text">${escapeHtml(idea.text)}</p>
-        <div class="idea-meta">
-          <time datetime="${idea.createdAt}">${formatDate(idea.createdAt)}</time>
-          ${locationHTML(idea.location)}
-        </div>
-      </div>
-      <div class="idea-actions">
-        <button class="btn btn-icon copy-btn" title="Copy" aria-label="Copy idea">
-          ${iconCopy()}
-        </button>
-      </div>
-    </li>
-  `).join('');
-
-  recentList.querySelectorAll('.copy-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id   = Number(btn.closest('.idea-item').dataset.id);
-      const idea = loadIdeas().find(i => i.id === id);
+  recentList.querySelectorAll('.idea-item').forEach(li => {
+    li.addEventListener('click', (e) => {
+      // Don't open detail if a copy/delete button was clicked
+      if (e.target.closest('.idea-actions')) return;
+      openDetailModal(Number(li.dataset.id));
+    });
+    li.querySelector('.copy-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idea = loadIdeas().find(i => i.id === Number(li.dataset.id));
       if (idea) copyText(idea.text);
     });
   });
 }
 
-// ===== Render: History (History Page) =====
+
+// ============================================================
+// RENDER: HISTORY (History page)
+// ============================================================
 function renderHistory() {
   const all      = loadIdeas();
   const filtered = filterIdeas(all);
@@ -348,7 +371,6 @@ function renderHistory() {
     historyList.innerHTML = '';
     return;
   }
-
   if (filtered.length === 0) {
     historyEmpty.classList.remove('hidden');
     historyEmptyMsg.textContent = 'No ideas match your filters.';
@@ -357,89 +379,222 @@ function renderHistory() {
   }
 
   historyEmpty.classList.add('hidden');
-  historyList.innerHTML = filtered.map(idea => ideaCardHTML(idea)).join('');
+  historyList.innerHTML = filtered.map(ideaCardHTML).join('');
 
-  historyList.querySelectorAll('.idea-item').forEach(li => attachCardEvents(li));
+  historyList.querySelectorAll('.idea-item').forEach(li => {
+    li.addEventListener('click', (e) => {
+      if (e.target.closest('.idea-actions')) return;
+      openDetailModal(Number(li.dataset.id));
+    });
+    li.querySelector('.copy-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idea = loadIdeas().find(i => i.id === Number(li.dataset.id));
+      if (idea) copyText(idea.text);
+    });
+    li.querySelector('.delete-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteIdea(Number(li.dataset.id));
+    });
+  });
 }
 
 function ideaCardHTML(idea) {
+  const actions = `
+    <div class="idea-actions">
+      <button class="btn btn-icon copy-btn"          title="Copy"   aria-label="Copy">${iconCopy()}</button>
+      <button class="btn btn-icon danger delete-btn" title="Delete" aria-label="Delete">${iconTrash()}</button>
+    </div>`;
+
   return `
-    <li class="idea-item" data-id="${idea.id}">
+    <li class="idea-item" data-id="${idea.id}" title="Tap to view/edit details">
       <div class="idea-body">
-        ${idea.category ? `<div style="margin-bottom:0.35rem">${badgeHTML(idea.category)}</div>` : ''}
+        <div class="idea-top">
+          ${idea.category ? badgeHTML(idea.category) : ''}
+          ${idea.hasMedia ? '<span class="media-indicator">📷 media</span>' : ''}
+        </div>
         <p class="idea-text">${escapeHtml(idea.text)}</p>
         <div class="idea-meta">
           <time datetime="${idea.createdAt}">${formatDate(idea.createdAt)}</time>
-          ${locationHTML(idea.location)}
+          ${locationInlineHTML(idea.location)}
         </div>
       </div>
-      <div class="idea-actions">
-        <button class="btn btn-icon edit-btn"        title="Edit"   aria-label="Edit idea">${iconEdit()}</button>
-        <button class="btn btn-icon copy-btn"        title="Copy"   aria-label="Copy idea">${iconCopy()}</button>
-        <button class="btn btn-icon danger delete-btn" title="Delete" aria-label="Delete idea">${iconTrash()}</button>
-      </div>
-    </li>
-  `;
+      ${actions}
+    </li>`;
 }
 
-function attachCardEvents(li) {
-  const id = Number(li.dataset.id);
 
-  li.querySelector('.edit-btn')?.addEventListener('click', () => enterEditMode(id, li));
-  li.querySelector('.copy-btn')?.addEventListener('click', () => {
-    const idea = loadIdeas().find(i => i.id === id);
-    if (idea) copyText(idea.text);
-  });
-  li.querySelector('.delete-btn')?.addEventListener('click', () => deleteIdea(id));
-}
-
-// ===== Edit Mode =====
-function enterEditMode(id, li) {
+// ============================================================
+// DETAIL MODAL
+// ============================================================
+function openDetailModal(id) {
   const idea = loadIdeas().find(i => i.id === id);
   if (!idea) return;
 
-  // Chip HTML for the edit form — built inline so colours apply via CSS classes
-  const chipHTML = ['', ...CATEGORIES].map(cat => {
-    const cls   = cat ? `cat-${cat.toLowerCase()}` : '';
-    const label = cat || 'None';
-    const sel   = idea.category === cat ? ' active' : '';
-    return `<button class="chip ${cls}${sel}" data-cat="${cat}">${label}</button>`;
-  }).join('');
+  detailIdeaId  = id;
+  pendingMedia  = null;
+  removeMedia   = false;
 
-  li.classList.add('editing');
-  li.innerHTML = `
-    <div class="classify-bar" style="width:100%">
-      <span class="classify-label">Category</span>
-      <div class="chip-row edit-chips">${chipHTML}</div>
-    </div>
-    <textarea class="edit-textarea" rows="3">${escapeHtml(idea.text)}</textarea>
-    ${idea.location ? `
-      <div class="idea-meta">
-        ${locationHTML(idea.location)}
-        <span style="font-size:0.7rem;color:var(--text-muted)">(recorded at save time)</span>
-      </div>` : ''}
-    <div class="edit-actions">
-      <button class="btn btn-sm btn-primary save-edit-btn">Save</button>
-      <button class="btn btn-sm btn-ghost cancel-edit-btn">Cancel</button>
-    </div>
-  `;
+  detailText.value = idea.text;
+  setChipGroup(detailChips, idea.category || '');
 
-  const editChips = li.querySelector('.edit-chips');
-  initChipGroup(editChips);
+  // Load existing media
+  const media = loadMedia(id);
+  renderMediaPreview(media);
 
-  li.querySelector('.save-edit-btn').addEventListener('click', () => {
-    const text = li.querySelector('.edit-textarea').value.trim();
-    if (!text) { showToast('Idea cannot be empty.'); return; }
-    const category = getSelectedChip(editChips);
-    updateIdea(id, text, category);
-  });
+  // Render date and location
+  renderDetailMeta(idea);
 
-  li.querySelector('.cancel-edit-btn').addEventListener('click', () => {
-    renderHistory();
+  detailModal.classList.remove('hidden');
+  detailText.focus();
+}
+
+function closeDetailModal() {
+  detailModal.classList.add('hidden');
+  detailIdeaId  = null;
+  pendingMedia  = null;
+  removeMedia   = false;
+  mediaPreview.innerHTML = '';
+  detailText.value = '';
+}
+
+closeDetailBtn.addEventListener('click', closeDetailModal);
+detailModal.addEventListener('click', (e) => {
+  if (e.target === detailModal) closeDetailModal();
+});
+
+// Save changes
+saveDetailBtn.addEventListener('click', () => {
+  const id   = detailIdeaId;
+  const text = detailText.value.trim();
+  if (!text) { showToast('Idea text cannot be empty.'); return; }
+
+  const category = getSelectedChip(detailChips);
+  const ideas    = loadIdeas();
+  const idx      = ideas.findIndex(i => i.id === id);
+  if (idx === -1) return;
+
+  ideas[idx].text     = text;
+  ideas[idx].category = category;
+
+  // Handle media changes
+  if (removeMedia) {
+    deleteMedia(id);
+    ideas[idx].hasMedia = false;
+  } else if (pendingMedia) {
+    const ok = saveMedia(id, pendingMedia.type, pendingMedia.dataUrl);
+    ideas[idx].hasMedia = ok;
+  }
+
+  persistIdeas(ideas);
+  renderRecent();
+  if (activePage === 'history') renderHistory();
+  closeDetailModal();
+  showToast('Idea updated!');
+});
+
+// Delete from detail modal
+deleteDetailBtn.addEventListener('click', () => {
+  const id = detailIdeaId;
+  if (!confirm('Delete this idea? This cannot be undone.')) return;
+  closeDetailModal();
+  deleteIdea(id);
+});
+
+// Render detail metadata: date + location button
+function renderDetailMeta(idea) {
+  let html = `
+    <div class="detail-date-line">
+      <svg viewBox="0 0 24 24" fill="none" width="13" height="13" style="flex-shrink:0">
+        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+        <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <time datetime="${idea.createdAt}">${formatDate(idea.createdAt)}</time>
+    </div>`;
+
+  if (idea.location) {
+    const { lat, lng } = idea.location;
+    const url   = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15`;
+    const label = `${lat.toFixed(5)}°, ${lng.toFixed(5)}°`;
+    html += `
+      <button class="detail-location-btn" onclick="window.open('${url}','_blank','noopener')" type="button">
+        <svg viewBox="0 0 24 24" fill="none" width="14" height="14" style="flex-shrink:0">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                fill="currentColor" opacity=".8"/>
+          <circle cx="12" cy="9" r="2.5" fill="#fff"/>
+        </svg>
+        <span class="location-coords">${label}</span>
+        <span class="location-hint">Open map →</span>
+      </button>`;
+  }
+
+  detailMeta.innerHTML = html;
+}
+
+
+// ============================================================
+// MEDIA CAPTURE (from detail modal)
+// ============================================================
+inputCameraPhoto.addEventListener('change', (e) => handleFileInput(e.target.files[0]));
+inputCameraVideo.addEventListener('change', (e) => handleFileInput(e.target.files[0]));
+inputLibrary.addEventListener('change',     (e) => handleFileInput(e.target.files[0]));
+
+async function handleFileInput(file) {
+  if (!file) return;
+
+  // Reset inputs so same file can be re-selected if needed
+  inputCameraPhoto.value = '';
+  inputCameraVideo.value = '';
+  inputLibrary.value     = '';
+
+  if (file.type.startsWith('image/')) {
+    showToast('Processing image…');
+    const dataUrl = await resizeImage(file);
+    if (!dataUrl) { showToast('Could not load image.'); return; }
+    pendingMedia = { type: 'image', dataUrl };
+    removeMedia  = false;
+    renderMediaPreview(pendingMedia);
+  } else if (file.type.startsWith('video/')) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      pendingMedia = { type: 'video', dataUrl: ev.target.result };
+      removeMedia  = false;
+      renderMediaPreview(pendingMedia);
+    };
+    reader.onerror = () => showToast('Could not load video.');
+    showToast('Loading video…');
+    reader.readAsDataURL(file);
+  } else {
+    showToast('Unsupported file type.');
+  }
+}
+
+function renderMediaPreview(media) {
+  if (!media) { mediaPreview.innerHTML = ''; return; }
+
+  let inner;
+  if (media.type === 'image') {
+    inner = `<img src="${media.dataUrl}" alt="Attached photo" />`;
+  } else {
+    inner = `<video src="${media.dataUrl}" controls playsinline></video>`;
+  }
+
+  mediaPreview.innerHTML = `
+    <div class="media-thumb">
+      ${inner}
+      <button class="remove-media-btn" title="Remove media" aria-label="Remove media">✕</button>
+    </div>`;
+
+  mediaPreview.querySelector('.remove-media-btn').addEventListener('click', () => {
+    pendingMedia = null;
+    removeMedia  = true;
+    mediaPreview.innerHTML = '';
   });
 }
 
-// ===== History Filters =====
+
+// ============================================================
+// HISTORY FILTERS
+// ============================================================
 function filterIdeas(ideas) {
   const search   = searchFilter.value.trim().toLowerCase();
   const category = getSelectedChip(filterChips);
@@ -447,8 +602,8 @@ function filterIdeas(ideas) {
   const to       = dateTo.value   ? new Date(dateTo.value + 'T23:59:59') : null;
 
   return ideas.filter(idea => {
-    if (search && !idea.text.toLowerCase().includes(search)) return false;
-    if (category && idea.category !== category) return false;
+    if (search   && !idea.text.toLowerCase().includes(search)) return false;
+    if (category && idea.category !== category)                return false;
     const d = new Date(idea.createdAt);
     if (from && d < from) return false;
     if (to   && d > to)   return false;
@@ -456,11 +611,10 @@ function filterIdeas(ideas) {
   });
 }
 
-searchFilter.addEventListener('input', () => { if (activePage === 'history') renderHistory(); });
-dateFrom.addEventListener('change',    () => { if (activePage === 'history') renderHistory(); });
-dateTo.addEventListener('change',      () => { if (activePage === 'history') renderHistory(); });
-
-clearFilters.addEventListener('click', () => {
+searchFilter.addEventListener('input',  () => { if (activePage === 'history') renderHistory(); });
+dateFrom.addEventListener('change',     () => { if (activePage === 'history') renderHistory(); });
+dateTo.addEventListener('change',       () => { if (activePage === 'history') renderHistory(); });
+clearFilters.addEventListener('click',  () => {
   searchFilter.value = '';
   dateFrom.value     = '';
   dateTo.value       = '';
@@ -468,7 +622,10 @@ clearFilters.addEventListener('click', () => {
   renderHistory();
 });
 
-// ===== Export CSV =====
+
+// ============================================================
+// EXPORT CSV
+// ============================================================
 exportBtn.addEventListener('click', () => {
   const ideas = loadIdeas();
   if (!ideas.length) { showToast('No ideas to export.'); return; }
@@ -491,15 +648,15 @@ exportBtn.addEventListener('click', () => {
   showToast('Ideas exported!');
 });
 
-// ===== Import CSV =====
+
+// ============================================================
+// IMPORT CSV
+// ============================================================
 importFile.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
-    importCSV(ev.target.result);
-    importFile.value = '';
-  };
+  reader.onload = (ev) => { importCSV(ev.target.result); importFile.value = ''; };
   reader.readAsText(file);
 });
 
@@ -507,14 +664,14 @@ function importCSV(text) {
   const rows = parseCSV(text);
   if (rows.length < 2) { showToast('No data found in file.'); return; }
 
-  const headers  = rows[0].map(h => h.toLowerCase().trim());
-  const col      = (names) => names.map(n => headers.indexOf(n)).find(i => i !== -1) ?? -1;
+  const headers = rows[0].map(h => h.toLowerCase().trim());
+  const col     = (...names) => names.map(n => headers.indexOf(n)).find(i => i !== -1) ?? -1;
 
-  const textIdx  = col(['text']);
-  const catIdx   = col(['category', 'classification']);
-  const dateIdx  = col(['createdat', 'date', 'created_at']);
-  const latIdx   = col(['lat', 'latitude']);
-  const lngIdx   = col(['lng', 'lon', 'longitude']);
+  const textIdx = col('text');
+  const catIdx  = col('category', 'classification');
+  const dateIdx = col('createdat', 'date', 'created_at');
+  const latIdx  = col('lat', 'latitude');
+  const lngIdx  = col('lng', 'lon', 'longitude');
 
   if (textIdx === -1) { showToast('CSV must have a "text" column.'); return; }
 
@@ -525,7 +682,6 @@ function importCSV(text) {
     const row  = rows[i];
     const text = row[textIdx]?.trim();
     if (!text) continue;
-
     const cat = catIdx  !== -1 ? row[catIdx]?.trim()  : '';
     const dt  = dateIdx !== -1 ? row[dateIdx]?.trim() : '';
     const lat = latIdx  !== -1 ? parseFloat(row[latIdx]) : NaN;
@@ -536,7 +692,8 @@ function importCSV(text) {
       text,
       category:  CATEGORIES.includes(cat) ? cat : '',
       createdAt: dt ? new Date(dt).toISOString() : new Date().toISOString(),
-      location:  (!isNaN(lat) && !isNaN(lng)) ? { lat, lng } : null
+      location:  (!isNaN(lat) && !isNaN(lng)) ? { lat, lng } : null,
+      hasMedia:  false
     });
     count++;
   }
@@ -548,7 +705,6 @@ function importCSV(text) {
   showToast(`Imported ${count} idea${count !== 1 ? 's' : ''}.`);
 }
 
-// Minimal RFC-4180 CSV parser
 function parseCSV(text) {
   const rows = [];
   let row = [], cell = '', inQ = false;
@@ -559,7 +715,7 @@ function parseCSV(text) {
       else if (ch === '"') { inQ = false; }
       else { cell += ch; }
     } else {
-      if (ch === '"') { inQ = true; }
+      if      (ch === '"') { inQ = true; }
       else if (ch === ',') { row.push(cell); cell = ''; }
       else if (ch === '\n' || ch === '\r') {
         if (ch === '\r' && text[i + 1] === '\n') i++;
@@ -573,33 +729,41 @@ function parseCSV(text) {
   return rows;
 }
 
-// ===== Clear All =====
+
+// ============================================================
+// CLEAR ALL
+// ============================================================
 clearAllBtn.addEventListener('click', () => {
-  if (!loadIdeas().length) { showToast('No ideas to clear.'); return; }
+  const ideas = loadIdeas();
+  if (!ideas.length) { showToast('No ideas to clear.'); return; }
   if (!confirm('Delete ALL saved ideas? This cannot be undone.')) return;
+  ideas.forEach(idea => deleteMedia(idea.id));
   localStorage.removeItem(STORAGE_KEY);
   renderRecent();
   renderHistory();
   showToast('All ideas cleared.');
 });
 
-// ===== Manual Input Modal (No-Speech Fallback) =====
+
+// ============================================================
+// NO-SPEECH FALLBACK MODAL
+// ============================================================
 saveManualBtn.addEventListener('click', () => {
   const text = manualInput.value.trim();
   if (!text) return;
-  const category = getSelectedChip(modalChips);
-  saveIdeaWithLocation(text, category);
+  autoSave(text);
   manualInput.value = '';
-  resetChipGroup(modalChips);
   noSpeechModal.classList.add('hidden');
 });
-
 closeModalBtn.addEventListener('click', () => noSpeechModal.classList.add('hidden'));
 noSpeechModal.addEventListener('click', (e) => {
   if (e.target === noSpeechModal) noSpeechModal.classList.add('hidden');
 });
 
-// ===== Copy to Clipboard =====
+
+// ============================================================
+// CLIPBOARD
+// ============================================================
 function copyText(text) {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
@@ -614,32 +778,38 @@ function copyText(text) {
   }
 }
 
-// ===== Toast =====
-function showToast(msg, ms = 2500) {
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, ms = 2600) {
   clearTimeout(toastTimeout);
   toast.textContent = msg;
   toast.classList.remove('hidden');
   toastTimeout = setTimeout(() => toast.classList.add('hidden'), ms);
 }
 
-// ===== HTML Helpers =====
+
+// ============================================================
+// HTML HELPERS
+// ============================================================
 function badgeHTML(category) {
   if (!category) return '';
   return `<span class="badge badge-${escapeHtml(category)}">${escapeHtml(category)}</span>`;
 }
 
-function locationHTML(loc) {
+function locationInlineHTML(loc) {
   if (!loc) return '';
   const { lat, lng } = loc;
-  const url   = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15`;
-  const label = `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
   return `
-    <a href="${url}" target="_blank" rel="noopener noreferrer" class="location-link" title="View on map: ${label}">
-      <svg viewBox="0 0 24 24" fill="none" width="12" height="12">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="currentColor" opacity=".85"/>
-        <circle cx="12" cy="9" r="2.5" fill="#fff"/>
+    <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15"
+       target="_blank" rel="noopener noreferrer"
+       class="location-link" title="View on map"
+       onclick="event.stopPropagation()">
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" opacity=".85"/>
       </svg>
-      ${label}
+      ${lat.toFixed(4)}°, ${lng.toFixed(4)}°
     </a>`;
 }
 
@@ -659,25 +829,18 @@ function formatDate(iso) {
   });
 }
 
-function dateStr(d) {
-  return d.toISOString().slice(0, 10);
-}
+function dateStr(d) { return d.toISOString().slice(0, 10); }
 
 function downloadFile(content, filename, type) {
   const url = URL.createObjectURL(new Blob([content], { type }));
-  const a   = Object.assign(document.createElement('a'), { href: url, download: filename });
-  a.click();
+  Object.assign(document.createElement('a'), { href: url, download: filename }).click();
   URL.revokeObjectURL(url);
 }
 
-// ===== SVG Icon Helpers =====
-function iconEdit() {
-  return `<svg viewBox="0 0 24 24" fill="none" width="15" height="15">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
-}
 
+// ============================================================
+// SVG ICONS
+// ============================================================
 function iconCopy() {
   return `<svg viewBox="0 0 24 24" fill="none" width="15" height="15">
     <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
@@ -694,12 +857,13 @@ function iconTrash() {
   </svg>`;
 }
 
-// ===== Init =====
-initChipGroup(captureChips);
-initChipGroup(modalChips);
+
+// ============================================================
+// INIT
+// ============================================================
+initChipGroup(detailChips);
 initChipGroup(filterChips);
 
-// Filter chips need to re-render history on change
 filterChips.querySelectorAll('.chip').forEach(chip => {
   chip.addEventListener('click', () => {
     if (activePage === 'history') renderHistory();
