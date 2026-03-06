@@ -260,27 +260,71 @@ function deleteIdea(id) {
 
 
 // ============================================================
-// MEDIA STORAGE (separate localStorage keys to keep main array small)
+// MEDIA STORAGE — IndexedDB (far larger quota than localStorage)
 // ============================================================
-function saveMedia(ideaId, type, dataUrl) {
+let _db = null;
+function openDB() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('ideasnap_media', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('media');
+    req.onsuccess  = e => { _db = e.target.result; resolve(_db); };
+    req.onerror    = e => reject(e.target.error);
+  });
+}
+
+async function saveMedia(ideaId, type, dataUrl) {
   try {
-    localStorage.setItem(`ideasnap_media_${ideaId}`, JSON.stringify({ type, dataUrl }));
-    return true;
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('media', 'readwrite');
+      tx.objectStore('media').put({ type, dataUrl }, ideaId);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror    = () => { showToast('Storage error — media not saved.'); resolve(false); };
+    });
   } catch {
-    showToast('Storage full — media not saved. Delete old ideas to free space.');
+    showToast('Storage error — media not saved.');
     return false;
   }
 }
 
-function loadMedia(ideaId) {
+async function loadMedia(ideaId) {
   try {
-    const raw = localStorage.getItem(`ideasnap_media_${ideaId}`);
-    return raw ? JSON.parse(raw) : null;
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx  = db.transaction('media', 'readonly');
+      const req = tx.objectStore('media').get(ideaId);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror   = () => resolve(null);
+    });
   } catch { return null; }
 }
 
-function deleteMedia(ideaId) {
-  localStorage.removeItem(`ideasnap_media_${ideaId}`);
+async function deleteMedia(ideaId) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction('media', 'readwrite');
+      tx.objectStore('media').delete(ideaId);
+      tx.oncomplete = () => resolve();
+      tx.onerror    = () => resolve();
+    });
+  } catch {}
+}
+
+// One-time migration: move any existing localStorage media into IndexedDB
+async function migrateLocalStorageMedia() {
+  const prefix = 'ideasnap_media_';
+  const keys = Object.keys(localStorage).filter(k => k.startsWith(prefix));
+  for (const key of keys) {
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      if (data?.type && data?.dataUrl) {
+        await saveMedia(Number(key.slice(prefix.length)), data.type, data.dataUrl);
+      }
+    } catch {}
+    localStorage.removeItem(key);
+  }
 }
 
 async function resizeImage(file, maxW = 1200) {
@@ -426,7 +470,7 @@ function ideaCardHTML(idea) {
 // ============================================================
 // DETAIL MODAL
 // ============================================================
-function openDetailModal(id) {
+async function openDetailModal(id) {
   const idea = loadIdeas().find(i => i.id === id);
   if (!idea) return;
 
@@ -438,7 +482,7 @@ function openDetailModal(id) {
   setChipGroup(detailChips, idea.category || '');
 
   // Load existing media
-  const media = loadMedia(id);
+  const media = await loadMedia(id);
   renderMediaPreview(media);
 
   // Render date and location
@@ -463,7 +507,7 @@ detailModal.addEventListener('click', (e) => {
 });
 
 // Save changes
-saveDetailBtn.addEventListener('click', () => {
+saveDetailBtn.addEventListener('click', async () => {
   const id   = detailIdeaId;
   const text = detailText.value.trim();
   if (!text) { showToast('Idea text cannot be empty.'); return; }
@@ -478,10 +522,10 @@ saveDetailBtn.addEventListener('click', () => {
 
   // Handle media changes
   if (removeMedia) {
-    deleteMedia(id);
+    await deleteMedia(id);
     ideas[idx].hasMedia = false;
   } else if (pendingMedia) {
-    const ok = saveMedia(id, pendingMedia.type, pendingMedia.dataUrl);
+    const ok = await saveMedia(id, pendingMedia.type, pendingMedia.dataUrl);
     ideas[idx].hasMedia = ok;
   }
 
@@ -572,8 +616,10 @@ function renderMediaPreview(media) {
   if (!media) { mediaPreview.innerHTML = ''; return; }
 
   let inner;
+  let hint = '';
   if (media.type === 'image') {
     inner = `<img src="${media.dataUrl}" alt="Attached photo" />`;
+    hint  = `<p class="media-save-hint">Long-press image → "Add to Photos"</p>`;
   } else {
     inner = `<video src="${media.dataUrl}" controls playsinline></video>`;
   }
@@ -582,7 +628,8 @@ function renderMediaPreview(media) {
     <div class="media-thumb">
       ${inner}
       <button class="remove-media-btn" title="Remove media" aria-label="Remove media">✕</button>
-    </div>`;
+    </div>
+    ${hint}`;
 
   mediaPreview.querySelector('.remove-media-btn').addEventListener('click', () => {
     pendingMedia = null;
@@ -871,3 +918,4 @@ filterChips.querySelectorAll('.chip').forEach(chip => {
 });
 
 renderRecent();
+migrateLocalStorageMedia(); // one-time: move any old localStorage media into IndexedDB
