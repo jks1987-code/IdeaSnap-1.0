@@ -61,9 +61,8 @@ let toastTimeout     = null;
 let activePage       = 'capture';
 
 // Detail modal state
-let detailIdeaId     = null;
-let pendingMedia     = null; // { type, dataUrl } or null
-let removeMedia      = false;
+let detailIdeaId      = null;
+let pendingMediaItems = []; // [{ type, dataUrl }, …]
 
 
 // ============================================================
@@ -276,12 +275,13 @@ function openDB() {
   });
 }
 
-async function saveMedia(ideaId, type, dataUrl) {
+async function saveMedia(ideaId, items) {
+  // items = [{ type, dataUrl }, …]
   try {
     const db = await openDB();
     return new Promise((resolve) => {
       const tx = db.transaction('media', 'readwrite');
-      tx.objectStore('media').put({ type, dataUrl }, ideaId);
+      tx.objectStore('media').put(items, ideaId);
       tx.oncomplete = () => resolve(true);
       tx.onerror    = () => { showToast('Storage error — media not saved.'); resolve(false); };
     });
@@ -297,10 +297,15 @@ async function loadMedia(ideaId) {
     return new Promise((resolve) => {
       const tx  = db.transaction('media', 'readonly');
       const req = tx.objectStore('media').get(ideaId);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror   = () => resolve(null);
+      req.onsuccess = () => {
+        const val = req.result;
+        if (!val) { resolve([]); return; }
+        // Migrate old single-object format { type, dataUrl } → array
+        resolve(Array.isArray(val) ? val : [val]);
+      };
+      req.onerror = () => resolve([]);
     });
-  } catch { return null; }
+  } catch { return []; }
 }
 
 async function deleteMedia(ideaId) {
@@ -323,7 +328,7 @@ async function migrateLocalStorageMedia() {
     try {
       const data = JSON.parse(localStorage.getItem(key));
       if (data?.type && data?.dataUrl) {
-        await saveMedia(Number(key.slice(prefix.length)), data.type, data.dataUrl);
+        await saveMedia(Number(key.slice(prefix.length)), [{ type: data.type, dataUrl: data.dataUrl }]);
       }
     } catch {}
     localStorage.removeItem(key);
@@ -396,6 +401,10 @@ function renderRecent() {
       e.stopPropagation();
       const idea = loadIdeas().find(i => i.id === Number(li.dataset.id));
       if (idea) copyText(idea.text);
+    });
+    li.querySelector('.delete-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteIdea(Number(li.dataset.id));
     });
   });
 }
@@ -477,16 +486,15 @@ async function openDetailModal(id) {
   const idea = loadIdeas().find(i => i.id === id);
   if (!idea) return;
 
-  detailIdeaId  = id;
-  pendingMedia  = null;
-  removeMedia   = false;
+  detailIdeaId      = id;
+  pendingMediaItems = [];
 
   detailText.value = idea.text;
   setChipGroup(detailChips, idea.category || '');
 
   // Load existing media
-  const media = await loadMedia(id);
-  renderMediaPreview(media);
+  pendingMediaItems = await loadMedia(id);
+  renderMediaPreview();
 
   // Render date and location
   renderDetailMeta(idea);
@@ -497,9 +505,8 @@ async function openDetailModal(id) {
 
 function closeDetailModal() {
   detailModal.classList.add('hidden');
-  detailIdeaId  = null;
-  pendingMedia  = null;
-  removeMedia   = false;
+  detailIdeaId      = null;
+  pendingMediaItems = [];
   mediaPreview.innerHTML = '';
   detailText.value = '';
 }
@@ -524,12 +531,12 @@ saveDetailBtn.addEventListener('click', async () => {
   ideas[idx].category = category;
 
   // Handle media changes
-  if (removeMedia) {
+  if (pendingMediaItems.length > 0) {
+    const ok = await saveMedia(id, pendingMediaItems);
+    ideas[idx].hasMedia = ok;
+  } else {
     await deleteMedia(id);
     ideas[idx].hasMedia = false;
-  } else if (pendingMedia) {
-    const ok = await saveMedia(id, pendingMedia.type, pendingMedia.dataUrl);
-    ideas[idx].hasMedia = ok;
   }
 
   persistIdeas(ideas);
@@ -597,15 +604,13 @@ async function handleFileInput(file) {
     showToast('Processing image…');
     const dataUrl = await resizeImage(file);
     if (!dataUrl) { showToast('Could not load image.'); return; }
-    pendingMedia = { type: 'image', dataUrl };
-    removeMedia  = false;
-    renderMediaPreview(pendingMedia);
+    pendingMediaItems.push({ type: 'image', dataUrl });
+    renderMediaPreview();
   } else if (file.type.startsWith('video/')) {
     const reader = new FileReader();
     reader.onload = (ev) => {
-      pendingMedia = { type: 'video', dataUrl: ev.target.result };
-      removeMedia  = false;
-      renderMediaPreview(pendingMedia);
+      pendingMediaItems.push({ type: 'video', dataUrl: ev.target.result });
+      renderMediaPreview();
     };
     reader.onerror = () => showToast('Could not load video.');
     showToast('Loading video…');
@@ -615,29 +620,28 @@ async function handleFileInput(file) {
   }
 }
 
-function renderMediaPreview(media) {
-  if (!media) { mediaPreview.innerHTML = ''; return; }
+function renderMediaPreview() {
+  if (pendingMediaItems.length === 0) { mediaPreview.innerHTML = ''; return; }
 
-  let inner;
-  let hint = '';
-  if (media.type === 'image') {
-    inner = `<img src="${media.dataUrl}" alt="Attached photo" />`;
-    hint  = `<p class="media-save-hint">Long-press image → "Add to Photos"</p>`;
-  } else {
-    inner = `<video src="${media.dataUrl}" controls playsinline></video>`;
-  }
-
-  mediaPreview.innerHTML = `
-    <div class="media-thumb">
+  const thumbs = pendingMediaItems.map((m, i) => {
+    const inner = m.type === 'image'
+      ? `<img src="${m.dataUrl}" alt="Photo ${i + 1}" />`
+      : `<video src="${m.dataUrl}" controls playsinline></video>`;
+    return `<div class="media-thumb" data-idx="${i}">
       ${inner}
-      <button class="remove-media-btn" title="Remove media" aria-label="Remove media">✕</button>
-    </div>
-    ${hint}`;
+      <button class="remove-media-btn" title="Remove" aria-label="Remove media">✕</button>
+    </div>`;
+  }).join('');
 
-  mediaPreview.querySelector('.remove-media-btn').addEventListener('click', () => {
-    pendingMedia = null;
-    removeMedia  = true;
-    mediaPreview.innerHTML = '';
+  const hasImage = pendingMediaItems.some(m => m.type === 'image');
+  const hint = hasImage ? `<p class="media-save-hint">Long-press image → "Add to Photos"</p>` : '';
+  mediaPreview.innerHTML = `<div class="media-gallery">${thumbs}</div>${hint}`;
+
+  mediaPreview.querySelectorAll('.remove-media-btn').forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      pendingMediaItems.splice(i, 1);
+      renderMediaPreview();
+    });
   });
 }
 

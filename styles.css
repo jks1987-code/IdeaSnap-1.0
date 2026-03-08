@@ -576,22 +576,37 @@ header {
 .media-preview {
   margin-top: 0.25rem;
 }
+.media-gallery {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
 .media-thumb {
   position: relative;
-  display: inline-block;
+  flex: 0 0 auto;
+  width: 110px;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  max-width: 100%;
   border: 2px solid var(--border);
 }
 .media-thumb img,
 .media-thumb video {
   display: block;
-  max-width: 100%;
-  max-height: 260px;
+  width: 110px;
+  height: 82px;
   object-fit: cover;
-  width: 100%;
   border-radius: calc(var(--radius-sm) - 2px);
+}
+/* Single item: go full-width */
+.media-gallery:has(.media-thumb:only-child) .media-thumb {
+  width: 100%;
+}
+.media-gallery:has(.media-thumb:only-child) .media-thumb img,
+.media-gallery:has(.media-thumb:only-child) .media-thumb video {
+  width: 100%;
+  height: auto;
+  max-height: 260px;
 }
 .remove-media-btn {
   position: absolute;
