@@ -404,6 +404,7 @@ function renderRecent() {
     });
     li.querySelector('.delete-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (!confirm('Delete this idea? This cannot be undone.')) return;
       deleteIdea(Number(li.dataset.id));
     });
   });
@@ -449,6 +450,7 @@ function renderHistory() {
     });
     li.querySelector('.delete-btn')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (!confirm('Delete this idea? This cannot be undone.')) return;
       deleteIdea(Number(li.dataset.id));
     });
   });
