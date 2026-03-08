@@ -160,6 +160,15 @@ quickTypeInput.addEventListener('keydown', (e) => {
   quickTypeInput.value = '';
 });
 
+quickTypeInput.addEventListener('paste', () => {
+  setTimeout(() => {
+    const text = quickTypeInput.value.trim();
+    if (!text) return;
+    autoSave(text);
+    quickTypeInput.value = '';
+  }, 0);
+});
+
 function startRecording() {
   currentText    = '';
   currentInterim = '';
