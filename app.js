@@ -42,8 +42,9 @@ const mediaPreview   = document.getElementById('mediaPreview');
 const inputCameraPhoto = document.getElementById('inputCameraPhoto');
 const inputCameraVideo = document.getElementById('inputCameraVideo');
 const inputLibrary   = document.getElementById('inputLibrary');
-const saveDetailBtn  = document.getElementById('saveDetailBtn');
-const deleteDetailBtn= document.getElementById('deleteDetailBtn');
+const saveDetailBtn   = document.getElementById('saveDetailBtn');
+const cancelDetailBtn = document.getElementById('cancelDetailBtn');
+const deleteDetailBtn = document.getElementById('deleteDetailBtn');
 
 const noSpeechModal  = document.getElementById('noSpeechModal');
 const manualInput    = document.getElementById('manualInput');
@@ -533,6 +534,7 @@ function closeDetailModal() {
 }
 
 closeDetailBtn.addEventListener('click', closeDetailModal);
+cancelDetailBtn.addEventListener('click', closeDetailModal);
 detailModal.addEventListener('click', (e) => {
   if (e.target === detailModal) closeDetailModal();
 });
