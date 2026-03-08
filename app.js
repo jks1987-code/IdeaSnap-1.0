@@ -14,6 +14,8 @@ const timerEl        = document.getElementById('timer');
 const transcriptEl   = document.getElementById('transcript');
 const transcriptText = document.getElementById('transcriptText');
 
+const quickTypeInput = document.getElementById('quickTypeInput');
+
 const recentList     = document.getElementById('recentList');
 const recentEmpty    = document.getElementById('recentEmpty');
 const ideaCount      = document.getElementById('ideaCount');
@@ -148,6 +150,14 @@ function renderTimer() {
 recordBtn.addEventListener('click', () => {
   if (isRecording) stopAndSave();
   else startRecording();
+});
+
+quickTypeInput.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const text = quickTypeInput.value.trim();
+  if (!text) return;
+  autoSave(text);
+  quickTypeInput.value = '';
 });
 
 function startRecording() {

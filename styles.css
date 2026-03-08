@@ -19,10 +19,13 @@
 
   /* Category colours */
   --c-artistic-bg:     #f3e8ff; --c-artistic-fg:     #7e22ce;
+  --c-code-bg:         #cffafe; --c-code-fg:         #0e7490;
   --c-improvement-bg:  #d1fae5; --c-improvement-fg:  #065f46;
+  --c-inspire-bg:      #fed7aa; --c-inspire-fg:      #c2410c;
+  --c-quote-bg:        #e0e7ff; --c-quote-fg:        #4338ca;
   --c-repair-bg:       #fef3c7; --c-repair-fg:       #92400e;
-  --c-shopping-bg:     #fce7f3; --c-shopping-fg:     #be185d;
-  --c-writing-bg:      #dbeafe; --c-writing-fg:      #1d4ed8;
+  --c-shop-bg:         #fce7f3; --c-shop-fg:         #be185d;
+  --c-write-bg:        #dbeafe; --c-write-fg:        #1d4ed8;
 }
 
 body {
@@ -190,6 +193,26 @@ header {
   font-style: italic;
 }
 
+/* Quick type / paste input */
+.quick-type-wrap {
+  width: 100%;
+}
+.quick-type-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.9rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  transition: border-color var(--tr);
+}
+.quick-type-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* ===== Section Header ===== */
 .section-header {
   display: flex;
@@ -272,17 +295,23 @@ header {
 
 /* Category chip active colours */
 .chip.cat-artistic.active    { background: var(--c-artistic-bg);    border-color: var(--c-artistic-fg);    color: var(--c-artistic-fg); }
+.chip.cat-code.active        { background: var(--c-code-bg);        border-color: var(--c-code-fg);        color: var(--c-code-fg); }
 .chip.cat-improvement.active { background: var(--c-improvement-bg); border-color: var(--c-improvement-fg); color: var(--c-improvement-fg); }
+.chip.cat-inspire.active     { background: var(--c-inspire-bg);     border-color: var(--c-inspire-fg);     color: var(--c-inspire-fg); }
+.chip.cat-quote.active       { background: var(--c-quote-bg);       border-color: var(--c-quote-fg);       color: var(--c-quote-fg); }
 .chip.cat-repair.active      { background: var(--c-repair-bg);      border-color: var(--c-repair-fg);      color: var(--c-repair-fg); }
-.chip.cat-shopping.active    { background: var(--c-shopping-bg);    border-color: var(--c-shopping-fg);    color: var(--c-shopping-fg); }
-.chip.cat-writing.active     { background: var(--c-writing-bg);     border-color: var(--c-writing-fg);     color: var(--c-writing-fg); }
+.chip.cat-shop.active        { background: var(--c-shop-bg);        border-color: var(--c-shop-fg);        color: var(--c-shop-fg); }
+.chip.cat-write.active       { background: var(--c-write-bg);       border-color: var(--c-write-fg);       color: var(--c-write-fg); }
 
 /* Category chip hover colours */
 .chip.cat-artistic:hover    { border-color: var(--c-artistic-fg);    color: var(--c-artistic-fg); }
+.chip.cat-code:hover        { border-color: var(--c-code-fg);        color: var(--c-code-fg); }
 .chip.cat-improvement:hover { border-color: var(--c-improvement-fg); color: var(--c-improvement-fg); }
+.chip.cat-inspire:hover     { border-color: var(--c-inspire-fg);     color: var(--c-inspire-fg); }
+.chip.cat-quote:hover       { border-color: var(--c-quote-fg);       color: var(--c-quote-fg); }
 .chip.cat-repair:hover      { border-color: var(--c-repair-fg);      color: var(--c-repair-fg); }
-.chip.cat-shopping:hover    { border-color: var(--c-shopping-fg);    color: var(--c-shopping-fg); }
-.chip.cat-writing:hover     { border-color: var(--c-writing-fg);     color: var(--c-writing-fg); }
+.chip.cat-shop:hover        { border-color: var(--c-shop-fg);        color: var(--c-shop-fg); }
+.chip.cat-write:hover       { border-color: var(--c-write-fg);       color: var(--c-write-fg); }
 
 /* Classification bar (inside detail modal) */
 .classify-bar {
@@ -314,10 +343,13 @@ header {
   flex-shrink: 0;
 }
 .badge-Artistic    { background: var(--c-artistic-bg);    color: var(--c-artistic-fg); }
+.badge-Code        { background: var(--c-code-bg);        color: var(--c-code-fg); }
 .badge-Improvement { background: var(--c-improvement-bg); color: var(--c-improvement-fg); }
+.badge-Inspire     { background: var(--c-inspire-bg);     color: var(--c-inspire-fg); }
+.badge-Quote       { background: var(--c-quote-bg);       color: var(--c-quote-fg); }
 .badge-Repair      { background: var(--c-repair-bg);      color: var(--c-repair-fg); }
-.badge-Shopping    { background: var(--c-shopping-bg);    color: var(--c-shopping-fg); }
-.badge-Writing     { background: var(--c-writing-bg);     color: var(--c-writing-fg); }
+.badge-Shop        { background: var(--c-shop-bg);        color: var(--c-shop-fg); }
+.badge-Write       { background: var(--c-write-bg);       color: var(--c-write-fg); }
 
 /* ===== Empty State ===== */
 .empty-state {
