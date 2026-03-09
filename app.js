@@ -154,7 +154,8 @@ recordBtn.addEventListener('click', () => {
 });
 
 quickTypeInput.addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
+  if (e.key !== 'Enter' || !e.ctrlKey) return;
+  e.preventDefault();
   const text = quickTypeInput.value.trim();
   if (!text) return;
   autoSave(text);
