@@ -15,6 +15,7 @@ const transcriptEl   = document.getElementById('transcript');
 const transcriptText = document.getElementById('transcriptText');
 
 const quickTypeInput = document.getElementById('quickTypeInput');
+const quickSaveBtn   = document.getElementById('quickSaveBtn');
 
 const recentList     = document.getElementById('recentList');
 const recentEmpty    = document.getElementById('recentEmpty');
@@ -153,14 +154,14 @@ recordBtn.addEventListener('click', () => {
   else startRecording();
 });
 
-quickTypeInput.addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter' || !e.ctrlKey) return;
-  e.preventDefault();
+function submitQuickType() {
   const text = quickTypeInput.value.trim();
   if (!text) return;
   autoSave(text);
   quickTypeInput.value = '';
-});
+}
+
+quickSaveBtn.addEventListener('click', submitQuickType);
 
 quickTypeInput.addEventListener('paste', () => {
   setTimeout(() => {

@@ -40,7 +40,6 @@ body {
 
 .app {
   width: 100%;
-  max-width: 600px;
 }
 
 /* ===== Logo / Header ===== */
@@ -196,6 +195,14 @@ header {
 /* Quick type / paste input */
 .quick-type-wrap {
   width: 100%;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.quick-save-btn {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  padding: 0.55rem 0.9rem;
 }
 .quick-type-input {
   width: 100%;
